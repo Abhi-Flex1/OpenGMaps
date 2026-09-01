@@ -15,6 +15,8 @@ struct Index {
     Column() {
       FlutterPage({ viewId: this.viewId })
     }
+    .width('100%')
+    .height('100%')
   }
 
   onBackPress(): boolean {

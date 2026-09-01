@@ -44,9 +44,8 @@ class _OpenGMapsState extends State<OpenGMaps> {
   OhosTileController? _ohosController;
 
   bool get _isOhos {
-    if (kIsWeb) return false;
-    // TargetPlatform.ohos exists only on OHOS SDK; use string check for cross-SDK compatibility
-    return defaultTargetPlatform.toString().contains('ohos');
+    // Return true on OpenHarmony / non-GMS platforms to use the pure-Dart tile map implementation
+    return true;
   }
 
   @override

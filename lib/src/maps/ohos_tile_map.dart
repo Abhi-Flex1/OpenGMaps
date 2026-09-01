@@ -153,27 +153,35 @@ class _OhosTileMapState extends State<OhosTileMap> {
             Positioned.fill(
               child: Stack(
                 children: [
-                  for (int dx = 0; dx < cols; dx++)
-                    for (int dy = 0; dy < rows; dy++)
-                      Builder(builder: (_) {
+                  ...() {
+                    final tiles = <Widget>[];
+                    for (int dx = 0; dx < cols; dx++) {
+                      for (int dy = 0; dy < rows; dy++) {
                         final x = startX + dx;
                         final y = startY + dy;
-                        if (x < 0 || y < 0 || x >= tileCount || y >= tileCount) return const SizedBox();
+                        if (x < 0 || y < 0 || x >= tileCount || y >= tileCount) continue;
                         final left = (x - centerX) * tileSize + w / 2;
                         final top = (y - centerY) * tileSize + h / 2;
-                        return Positioned(
-                          left: left,
-                          top: top,
-                          width: tileSize,
-                          height: tileSize,
-                          child: Image.network(
-                            _tileUrl(x, y, z),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(color: HmosColors.surfaceVariant, child: const Icon(Icons.map, color: HmosColors.textTertiary)),
-                            // cache
+                        tiles.add(
+                          Positioned(
+                            left: left,
+                            top: top,
+                            width: tileSize,
+                            height: tileSize,
+                            child: Image.network(
+                              _tileUrl(x, y, z),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: HmosColors.surfaceVariant,
+                                child: const Icon(Icons.map, color: HmosColors.textTertiary),
+                              ),
+                            ),
                           ),
                         );
-                      }),
+                      }
+                    }
+                    return tiles;
+                  }(),
                 ],
               ),
             ),

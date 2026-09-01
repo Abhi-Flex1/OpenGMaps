@@ -6,7 +6,7 @@ import 'harmony_colors.dart';
 class HmosTypography {
   HmosTypography._();
 
-  static const String family = 'HarmonyOS_Sans';
+  static const String? family = null;
 
   // Display — large titles
   static const TextStyle displayLarge = TextStyle(

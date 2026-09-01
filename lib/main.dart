@@ -13,6 +13,10 @@ import 'src/maps/open_gmaps_widget.dart';
 import 'src/maps/open_gmaps_controller.dart';
 
 void main() {
+  FlutterError.onError = (details) {
+    debugPrint('FLUTTER_ERROR: ${details.exceptionAsString()}');
+    debugPrint('STACK_TRACE: ${details.stack}');
+  };
   runApp(const OpenGMapsApp());
 }
 
@@ -194,7 +198,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  bool get _isOhos => !kIsWeb && defaultTargetPlatform.toString().contains('ohos');
+  bool get _isOhos => true;
 
   @override
   Widget build(BuildContext context) {
