@@ -24,9 +24,9 @@ dependencies:
       url: https://gitee.com/openharmony-sig/flutter_inappwebview.git
       path: flutter_inappwebview
       ref: bfc8e52cc9ba6e4f361bad95f7a6ee92a56ec6f6
-  # OHOS-only: official Google Maps Platform (Maps JS + Places/Geocoding/
-  # Directions HTTPS). No google_maps_flutter (no OHOS platform impl),
-  # no tile scraping, no embed-HTML parsing.
+  # OHOS rendering: official Google Maps Platform (Maps JS in the native
+  # OHOS WebView via the backport below + Places/Geocoding/Directions
+  # HTTPS). No tile scraping, no embed-HTML parsing.
 
 dev_dependencies:
   flutter_test:
