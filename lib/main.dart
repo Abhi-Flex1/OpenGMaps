@@ -30,6 +30,10 @@ import 'src/widgets/google_brand_icons.dart';
 
 void main() {
   GoogleMapsFlutterOhos.register();
+  // Dedicated Maps JavaScript key via --dart-define=OGM_MAPS_KEY.
+  // Falls back to GOOGLE_MAPS_API_KEY when empty (single-key setup).
+  const mapsKey = String.fromEnvironment('OGM_MAPS_KEY', defaultValue: '');
+  if (mapsKey.isNotEmpty) GoogleMapsFlutterOhos.apiKeyOverride = mapsKey;
   runApp(const OpenGMapsApp());
 }
 
@@ -71,8 +75,15 @@ class _HomePageState extends State<HomePage> {
   final _destCtrl = TextEditingController();
 
   final _places = GooglePlacesService.instance;
-  final _geo = GoogleGeocodingService.instance;
-  final _dirs = GoogleDirectionsService.instance;
+  // Dedicated service keys via --dart-define=OGM_GEO_KEY / OGM_DIRS_KEY.
+  // Empty falls back to GoogleMapsConfig.apiKey (GOOGLE_MAPS_API_KEY),
+  // so single-key setups keep working unchanged.
+  static const _geoKey = String.fromEnvironment('OGM_GEO_KEY', defaultValue: '');
+  static const _dirsKey =
+      String.fromEnvironment('OGM_DIRS_KEY', defaultValue: '');
+  final _geo = GoogleGeocodingService(apiKey: _geoKey.isEmpty ? null : _geoKey);
+  final _dirs =
+      GoogleDirectionsService(apiKey: _dirsKey.isEmpty ? null : _dirsKey);
   final _loc = LocationService.instance;
   final _saved = SavedPlacesService.instance;
 
