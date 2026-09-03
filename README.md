@@ -1,6 +1,12 @@
 # OpenGMaps — Google Maps for OpenHarmony
 
-> Flutter backport of `google_maps_flutter` to OpenHarmony/HarmonyOS with **HMOS NEXT** design. One codebase: **native `google_maps_flutter` on Android/iOS/Web**, **pure-Dart Google raster tiles on OHOS** (`mt*.google.com`) behind an identical `OpenGMaps` API. **OHOS-only** — Android/iOS shells remain but are unused.
+> Flutter Google Maps app for OpenHarmony/HarmonyOS using the **stock
+> `google_maps_flutter` widget** (`2.12.3`). OHOS rendering comes from the
+> in-repo backport **`packages/google_maps_flutter_ohos`**, which implements
+> `GoogleMapsFlutterPlatform` on the official Maps JavaScript API inside the
+> native OHOS WebView — plus keyed **Places / Geocoding / Directions** REST
+> clients and native OHOS Location Kit. **OHOS-only** — Android/iOS shells
+> remain but are unused.
 
 ![HarmonyOS](https://img.shields.io/badge/HarmonyOS-NEXT-0A59F7?style=flat-square)
 ![OpenHarmony](https://img.shields.io/badge/OpenHarmony-5.0%20API12-00BFFF?style=flat-square)
@@ -40,7 +46,7 @@ fvm flutter test    # 1 passed
 fvm flutter run -d <ohos-device> # or: fvm flutter build hap --debug
 ```
 
-What you get: pill search bar (48dp), `HmosChip` filters, floating pill bottom bar, `DraggableScrollableSheet` with `HmosCard`/`HmosListTile`, map-type sheet, **Google raster tiles on OHOS** — no OSM.
+What you get: pill search bar (48dp), `HmosChip` filters, floating pill bottom bar, `DraggableScrollableSheet` with `HmosCard`/`HmosListTile`, map-type sheet, and Google Maps Embed in an OHOS WebView. Configure `GOOGLE_MAPS_API_KEY` to load the supported Google Embed surface; without it, OHOS shows a key-required state instead of a misleading map.
 
 ---
 
@@ -53,10 +59,10 @@ What you get: pill search bar (48dp), `HmosChip` filters, floating pill bottom b
   "goal": "Run OpenGMaps on OHOS (Flutter OHOS 3.7.12, Dart 2.19, API12, arm64)",
   "fvm_pin": "ohos",
   "sdk_constraint": ">=2.19.6 <4.0.0",
-  "key_deps": { "google_maps_flutter": "2.3.0" },
+  "key_deps": { "google_maps_flutter": "2.3.0", "flutter_inappwebview": "6.0.0 (OHOS SIG fork)" },
   "entry": "lib/main.dart:15 OpenGMapsApp -> HomePage:55",
-  "map_dispatch": "lib/src/maps/open_gmaps_widget.dart:46 defaultTargetPlatform.toString().contains('ohos') ? OhosTileMap : GoogleMap",
-  "tile_url": "lib/src/maps/ohos_tile_map.dart:85 https://mt{sub}.google.com/vt/lyrs={m|s|y|p}&hl=en&x={x}&y={y}&z={z}&s=Ga",
+  "map_dispatch": "lib/src/maps/open_gmaps_widget.dart:46 OHOS -> GoogleEmbedMap (InAppWebView), other targets -> GoogleMap",
+  "embed_url": "lib/src/maps/google_embed_map.dart https://www.google.com/maps/embed/v1/view",
   "theme": "lib/src/harmony/harmony_theme.dart:19 HmosTheme.light()/dark()",
   "bundle": "ohos/AppScope/app.json5:1 io.opengmaps.open_gmaps",
   "hvigor_product": "ohos/build-profile.json5:1 compatibleSdkVersion 5.0.0(12) runtimeOS HarmonyOS",
@@ -90,39 +96,23 @@ What you get: pill search bar (48dp), `HmosChip` filters, floating pill bottom b
 
 ```
 lib/
-├── main.dart                         # OpenGMapsApp (HmosTheme) → HomePage (Stack: map + HMOS overlays)
+├── main.dart                         # OpenGMapsApp → HomePage (stock GoogleMap + Google UI)
 └── src/
-    ├── harmony/
-    │   ├── harmony_colors.dart       # HmosColors tokens
-    │   ├── harmony_typography.dart   # HmosTypography (HarmonyOS Sans)
-    │   ├── harmony_theme.dart        # HmosTheme.light()/dark()
-    │   └── widgets/
-    │       ├── hmos_card.dart        # soft 20dp card
-    │       ├── hmos_search_bar.dart  # pill 48dp + mic
-    │       ├── hmos_app_bar.dart     # + pill HmosBottomBar
-    │       ├── hmos_button.dart      # primary/secondary/ghost
-    │       ├── hmos_chip.dart        # HmosFilter + HmosFilterChips
-    │       ├── hmos_list_tile.dart
-    │       └── hmos_bottom_sheet.dart
-    └── maps/
-        ├── open_gmaps_types.dart         # OpenLatLng:5, OpenCameraPosition:18, OpenMarker:29, OpenMapType:64
-        ├── open_gmaps_controller.dart    # OpenGMapsController:4 + OhosTileController:13
-        ├── ohos_tile_map.dart            # pure-Dart tile grid (Mercator) — OHOS
-        └── open_gmaps_widget.dart        # OpenGMaps:12 — dispatch _isOhos:46
-ohos/  # EntryAbility.ets:1 FlutterAbility, hvigor, 5.0(12)
+    ├── config/
+    │   └── google_maps_config.dart   # GOOGLE_MAPS_API_KEY (--dart-define), hasKey, typed errors
+    ├── maps/
+    │   └── polyline_codec.dart       # overview_polyline decode/encode (tested)
+    ├── utils/
+    │   └── geo.dart                  # LatLng.asParam for REST calls
+    └── services/
+        ├── google_places_service.dart    # Autocomplete / Text Search / Details (keyed REST)
+        ├── google_geocoding_service.dart # reverse (map tap) + forward (keyed REST)
+        ├── google_directions_service.dart# Directions API + TravelMode + universal Navigate URL
+        ├── location_service.dart         # OHOS Location Kit via io.opengmaps/location
+        └── saved_places_service.dart     # saved pins + recent searches
+packages/google_maps_flutter_ohos/    # OHOS backport of google_maps_flutter
+ohos/  # EntryAbility.ets: check/request permission + getCurrentLocation, API12
 ```
-
-Dispatch:
-
-```dart
-// lib/src/maps/open_gmaps_widget.dart:46
-bool get _isOhos => !kIsWeb && defaultTargetPlatform.toString().contains('ohos');
-// avoids TargetPlatform.ohos missing on stable (Dart 2.19 compat, no switch-expr)
-if (_isOhos) return OhosTileMap(...);
-else return GoogleMap(...); // google_maps_flutter
-```
-
-`OhosTileMap` (`ohos_tile_map.dart:34`): Mercator `_lngToX/_latToY`, `tileCount=2^z`, `cols/rows` buffer, `GestureDetector` pan → `center`, `Positioned` `Image.network` tiles + `Positioned` markers.
 
 ---
 
@@ -136,24 +126,50 @@ else return GoogleMap(...); // google_maps_flutter
 
 ---
 
-## 5. Maps — Proper Google Maps on OHOS
+## 5. Maps — `google_maps_flutter` backported to OHOS
 
-**OHOS = pure Google raster tiles, no OSM.** `ohos_tile_map.dart:85`:
+**There is no GMS / native Maps SDK binary for OpenHarmony**, so the
+backport renders the official **Maps JavaScript API** (weekly channel,
+vector rendering, gestures, controls) inside the GPU-composited OHOS
+WebView and translates the whole stock plugin surface to it:
+`GoogleMap`/`GoogleMapController`, all 9 `CameraUpdate` types, markers
+(custom icons, info windows, dragging, clustering), polylines, polygons,
+circles, heatmaps, tile overlays (tiles pulled from Dart `TileProvider`s),
+ground overlays, map styling, all map types, gestures, projections and
+every event stream. Place data, geocoding and routes come from the keyed
+**Places / Geocoding / Directions** REST APIs.
 
-```dart
-String lyrs; switch(mapType){
-  case satellite: lyrs='s'; break; // satellite
-  case hybrid:    lyrs='y'; break; // hybrid
-  case terrain:   lyrs='p'; break; // terrain
-  default:        lyrs='m'; break; // roadmap
-}
-final sub=(x+y)%4; // mt0..3 load balancing
-return 'https://mt$sub.google.com/vt/lyrs=$lyrs&hl=en&x=$x&y=$y&z=$z&s=Ga';
+```
+packages/google_maps_flutter_ohos/
+├── lib/google_maps_flutter_ohos.dart  # register() entry point
+└── lib/src/
+    ├── google_maps_flutter_ohos.dart  # GoogleMapsFlutterPlatform impl
+    ├── ohos_map_view.dart             # WebView host widget
+    ├── map_bridge.dart                # sessions, events, tile fetching
+    ├── map_html.dart                  # OhosMaps JS bridge
+    ├── icon_resolver.dart             # BitmapDescriptor → data URLs
+    └── translation.dart               # camera/options/overlay mapping
 ```
 
-`mt*.google.com/vt` serves without API key for demo (add `&key=YOUR_KEY` for production). `OpenMapType` (`open_gmaps_types.dart:64`) `normal/satellite/terrain/hybrid` → `label/icon` via `OpenMapTypeX`. Native `google_maps_flutter` (`open_gmaps_widget.dart:110` `GoogleMap`) used elsewhere, but **this repo is OHOS-only** — `OhosTileMap` is the tested path.
+The app registers it in `main()` (`lib/main.dart:24`) and then uses the
+stock API unchanged — no platform fork in app code. The package is
+consumed as a Dart package with an explicit `register()` call (the OHOS
+flutter tool crashes on Dart-only `flutter.plugin` declarations, so the
+`implements:` block is intentionally omitted; see the package pubspec).
 
-Why `2.3.0`? (`pubspec.yaml:15`) Latest `google_maps_flutter 2.12` needs Dart `^3.6` → breaks OHOS `2.19`. `2.3.0` (`>=2.14 <4`) satisfies both. `flutter_map` intentionally not depended — would need `4.0 <3` vs `8.x >=3.6` and diverge lockfiles.
+Build/run with a key supplied out-of-band:
+
+```bash
+fvm flutter run -d <ohos-device> --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY
+fvm flutter build hap --debug --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY
+```
+
+Enable Maps JavaScript API, Places API, Geocoding API and Directions API
+with billing for the owning Google Cloud project. Without a key, the map
+shows an honest key-required state — never a third-party map mislabeled
+as Google. Verified on-device (OpenHarmony 5.0.1): launch, location
+channel, WebView bridge traffic and the Google auth error path, with zero
+Dart errors; full map rendering unlocks with a valid key.
 
 ---
 
@@ -173,7 +189,7 @@ Why `2.3.0`? (`pubspec.yaml:15`) Latest `google_maps_flutter 2.12` needs Dart `^
 ├── android/ ios/                   # shells (unused, OHOS-only)
 ├── assets/images/.gitkeep
 ├── test/widget_test.dart           # OpenGMapsApp smoke
-├── pubspec.yaml                    # sdk >=2.19.6 <4.0.0, google_maps_flutter 2.3.0
+├── pubspec.yaml                    # sdk >=2.19.6 <4.0.0, Embed WebView + google_maps_flutter
 ├── .fvm/fvm_config.json + .fvmrc  # flutterSdkVersion ohos
 └── README.md (this file)
 ```
@@ -186,7 +202,7 @@ Why `2.3.0`? (`pubspec.yaml:15`) Latest `google_maps_flutter 2.12` needs Dart `^
 - **FVM** `brew install fvm` (`fvm --version 4.3.0`)
 - **OHOS Flutter SDK** `3.7.12` (Dart `2.19.6`, Engine `1a65d409c7`): `fvm install ohos` or `git clone https://gitcode.com/CPF-Flutter/flutter_flutter` → `~/development/flutter_ohos` → `fvm use ohos`. Patched `version:1`/`bin/cache/flutter.version.json` from `0.0.0-unknown` via `git tag 3.7.12`.
 - **OpenHarmony SDK 5.0 API12** at `~/Library/OpenHarmony/command-line-tools/sdk` (`ohpm 6.1.2.268`, `hvigorw 6.24.2`, `hdc Ver:3.2.0d`, `Emulator 6.1.1.200 arm64`).
-- **Google Maps**: no key for OHOS `mt` tiles; native would need `com.google.android.geo.API_KEY` (not used here).
+- **Google Maps**: for production OHOS builds, supply `GOOGLE_MAPS_API_KEY` with `--dart-define` and enable the Maps Embed API in Google Cloud. Native Android/iOS builds also need their normal SDK key configuration.
 
 Check:
 
@@ -204,7 +220,7 @@ file ~/Library/OpenHarmony/command-line-tools/emulator/Emulator # arm64
 ```bash
 git clone <this-repo> OpenGMaps && cd OpenGMaps
 fvm use ohos --force
-fvm flutter pub get          # ohos: google_maps_flutter 2.3.0 + transitives (meta 1.8 etc.)
+fvm flutter pub get          # OHOS SIG InAppWebView + google_maps_flutter transitives
 fvm flutter analyze          # → No issues found!
 fvm flutter test             # → 00:01 +1 All tests passed!
 ```
@@ -276,7 +292,7 @@ fvm flutter test          # lib/main.dart OpenGMapsApp smoke
 fvm flutter analyze       # ohos No issues; stable shows 22 withOpacity infos (ignore)
 ```
 
-`test/widget_test.dart:1` pumps `OpenGMapsApp` and expects `Search places, food, hotels`.
+`test/widget_test.dart:1` pumps `OpenGMapsApp` and verifies the Google-branded shell, navigation, and strict no-fake-data service behavior.
 
 ---
 
@@ -290,7 +306,8 @@ fvm flutter analyze       # ohos No issues; stable shows 22 withOpacity infos (i
 | `ohos/entry/src/main/module.json5:1` | `requestPermissions [INTERNET]` |
 | `ohos/AppScope/app.json5:1` | `bundleName io.opengmaps.open_gmaps` `vendor example` |
 | `ohos/entry/src/main/ets/entryability/EntryAbility.ets:1` | `extends FlutterAbility` + `GeneratedPluginRegistrant` |
-| `lib/src/maps/ohos_tile_map.dart:85` | Google `mt*.google.com/vt` tile URL |
+| `lib/src/maps/google_embed_map.dart` | Google Maps Embed API WebView surface on OHOS |
+| `lib/src/maps/ohos_tile_map.dart` | Legacy development renderer retained for reference, not selected on OHOS |
 | `ohos/.hvigor/` + `oh_modules/` | hvigor cache (gitignored) |
 
 ---
@@ -300,14 +317,14 @@ fvm flutter analyze       # ohos No issues; stable shows 22 withOpacity infos (i
 - `0.0.0-unknown` → `git -C /Users/abhi/development/flutter_ohos tag 3.7.12` + `echo 3.7.12 > version` + `flutter.version.json` `frameworkVersion 3.7.12`.
 - `Emulator -install` → `Chinese mainland only` → CN VPN / DevEco on CN / physical device (§9).
 - `SignHap 00303116` / `storePassword <32` → DevEco auto-sign or 32-char `generate-keypair`.
-- `minSdkVersion 16 <20` / `GOOGLE_MAPS_API_KEY` — Android only, ignore for OHOS; if building Android, `minSdk 20` + dummy `AIzaSyDummyKeyForDebug_OpenGMaps` in `AndroidManifest.xml:36`.
+- `GOOGLE_MAPS_API_KEY` — supply it with `--dart-define` for the OHOS Google Maps Embed API path. Android/iOS native maps still need their platform-specific SDK key configuration.
 - `major version 70` → `JAVA_HOME` mismatch; OHOS needs `17` (`/opt/homebrew/opt/openjdk@17/...`), `7.5` supports `<=18`. `fvm flutter config` unavailable on `3.7` — use `JAVA_HOME=/opt/homebrew/opt/openjdk@17/...`.
 
 ---
 
 ## 14. Roadmap
 
-- [ ] OHOS Map Kit `@ohos.geoLocationManager` + `@ohos.map` via `MethodChannel`/`PlatformView` (current pure-Dart tiles)
+- [ ] Native OHOS map provider if a Google-compatible OHOS SDK becomes available (current production path is Google Maps Embed in WebView)
 - [ ] Tile cache `flutter_cache_manager` + offline `mbtiles`
 - [ ] Unified `geolocator` ↔ `@ohos.geoLocationManager`
 - [ ] Map style JSON parity
@@ -322,6 +339,6 @@ Apache 2.0 — `LICENSE`.
 - [Flutter OHOS (CPF-Flutter) 3.7.12](https://gitcode.com/CPF-Flutter/flutter_flutter)
 - [google_maps_flutter 2.3.0](https://pub.dev/packages/google_maps_flutter) (Dart 2.19 compat)
 - [HarmonyOS Design](https://developer.harmonyos.com/cn/design) / [Emulator FAQs](https://developer.huawei.com/consumer/en/doc/harmonyos-guides/ide-emulator-faqs)
-- Google raster tiles `mt*.google.com` © Google, preview OSM © OSM
+- Google Maps Embed API and Google Maps Platform © Google
 
 > Humans: open `lib/main.dart:15` and run. Agents: follow §2 JSON and §8 commands byte-for-byte.

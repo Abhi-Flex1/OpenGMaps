@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_label",
       "value": "open_gmaps"
+    },
+    {
+      "name": "location_reason",
+      "value": "OpenGMaps needs your location to show your current position and provide navigation."
     }
   ]
 }

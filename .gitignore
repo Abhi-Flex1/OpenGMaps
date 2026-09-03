@@ -45,3 +45,5 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+# Nested federated-plugin package outputs
+packages/*/build/

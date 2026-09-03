@@ -1,5 +1,3 @@
-
-
 {
   "modelVersion": "5.0.0",
   "name": "open_gmaps",
@@ -15,6 +13,8 @@
     "@ohos/hypium": "1.0.6"
   },
   "overrides": {
-    "@ohos/flutter_ohos": "file:./har/flutter.har"
+    "@ohos/flutter_ohos": "file:./har/flutter.har",
+    "flutter_inappwebview_ohos": "file:./har/flutter_inappwebview_ohos.har",
+    "@ohos/flutter_module": "file:./entry"
   }
 }

@@ -1,0 +1,34 @@
+name: google_maps_flutter_ohos
+description: OpenHarmony (OHOS) implementation of google_maps_flutter.
+repository: https://github.com/anomalyco/opencode
+issue_tracker: https://github.com/anomalyco/opencode/issues
+version: 2.12.3
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_maps_flutter_platform_interface: ^2.12.1
+  flutter_inappwebview:
+    git:
+      url: https://gitee.com/openharmony-sig/flutter_inappwebview.git
+      path: flutter_inappwebview
+      ref: bfc8e52cc9ba6e4f361bad95f7a6ee92a56ec6f6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.3
+
+# Note: intentionally *not* declared as a federated `flutter.plugin`
+# (`implements:`/`platforms: ohos`). The OHOS flutter tool crashes on
+# Dart-only ohos plugins while resolving native modules
+# (`ohos_plugins_manager` expects an `ohos/` directory), and this
+# implementation needs no native code — it drives the already-native
+# `flutter_inappwebview` WebView. Apps consume it as a Dart package and
+# call `GoogleMapsFlutterOhos.register()` before `runApp` (the documented
+# registration pattern). Re-add the `flutter.plugin` block when publishing
+# alongside a native shell.

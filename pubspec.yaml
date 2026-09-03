@@ -1,5 +1,5 @@
 name: open_gmaps
-description: Google Maps adaptation for OpenHarmony and HarmonyOS — Flutter backport with HarmonyOS Design Language.
+description: Google Maps for OpenHarmony — Flutter + official Google Maps Platform SDKs (Maps JS, Places, Geocoding, Directions) with native OHOS location.
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -10,9 +10,23 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.5
-  # Google Maps Flutter — used natively on Android/iOS/Web
-  # OHOS fallback: pure-Dart tile implementation (no native SDK required)
-  google_maps_flutter: 2.3.0
+  http: ^1.2.0
+  # Stock Google Maps widget; OHOS rendering comes from the backport below.
+  google_maps_flutter: 2.12.3
+  google_maps_flutter_ohos:
+    path: packages/google_maps_flutter_ohos
+  # Official Google Maps rendering on OHOS: Maps JavaScript API inside the
+  # native OHOS WebView (ArkWeb) via the OHOS SIG WebView plugin.
+  # There is no GMS / native Maps SDK binary for OpenHarmony, so the JS API
+  # *is* the native-supported path here, bridged to Flutter.
+  flutter_inappwebview:
+    git:
+      url: https://gitee.com/openharmony-sig/flutter_inappwebview.git
+      path: flutter_inappwebview
+      ref: bfc8e52cc9ba6e4f361bad95f7a6ee92a56ec6f6
+  # OHOS-only: official Google Maps Platform (Maps JS + Places/Geocoding/
+  # Directions HTTPS). No google_maps_flutter (no OHOS platform impl),
+  # no tile scraping, no embed-HTML parsing.
 
 dev_dependencies:
   flutter_test:
@@ -24,3 +38,22 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/fonts/
+
+  fonts:
+    - family: Google Sans
+      fonts:
+        - asset: assets/fonts/GoogleSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/GoogleSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/GoogleSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/GoogleSans-Italic.ttf
+          style: italic
+        - asset: assets/fonts/GoogleSans-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/GoogleSans-BoldItalic.ttf
+          weight: 700
+          style: italic

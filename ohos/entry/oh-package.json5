@@ -5,5 +5,8 @@
   "main": "",
   "author": "",
   "license": "",
-  "dependencies": {}
+  "dependencies": {
+    "@ohos/flutter_ohos": "har/flutter.har",
+    "flutter_inappwebview_ohos": "file:../har/flutter_inappwebview_ohos.har"
+  }
 }
